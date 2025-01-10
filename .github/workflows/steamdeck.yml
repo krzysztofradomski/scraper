@@ -10,18 +10,18 @@ jobs:
     steps:
     - name: Check out this repo
       uses: actions/checkout@v4
-      
+
     - name: Set up Node.js
       uses: actions/setup-node@v3
       with:
         node-version: '16'
-        
+
     - name: Install Puppeteer
       run: npm install puppeteer
-      
-    - name: Fetch current Steam Deck Refurbished page using Puppeteer
+
+    - name: Create Node.js script for Puppeteer
       run: |-
-        node <<EOF
+        cat << 'EOF' > fetchPage.js
         const fs = require('fs');
         const puppeteer = require('puppeteer');
 
@@ -34,14 +34,14 @@ jobs:
             const content = await page.content();
             fs.writeFileSync('dump.html', content);
 
-            await browser.close();
-
             if (content.trim().length === 0) {
               const timestamp = new Date().toISOString();
               fs.appendFileSync('steamdeck_error_log.txt', `Error at: ${timestamp}\n`);
             } else {
               console.log('Steam Deck Refurbished page fetched successfully.');
             }
+
+            await browser.close();
           } catch (error) {
             const timestamp = new Date().toISOString();
             fs.appendFileSync('steamdeck_error_log.txt', `Error at: ${timestamp} - ${error.message}\n`);
@@ -49,6 +49,9 @@ jobs:
           }
         })();
         EOF
+
+    - name: Run Puppeteer script
+      run: node fetchPage.js
 
     - name: Commit and push changes
       run: |-
