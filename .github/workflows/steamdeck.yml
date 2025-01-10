@@ -10,22 +10,50 @@ jobs:
     steps:
     - name: Check out this repo
       uses: actions/checkout@v4
-    - name: Fetch current Steam Deck Refurbished page
+      
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '16'
+        
+    - name: Install Puppeteer
+      run: npm install puppeteer
+      
+    - name: Fetch current Steam Deck Refurbished page using Puppeteer
       run: |-
-        curl -L "https://store.steampowered.com/sale/steamdeckrefurbished/" -o dump.html
-        if [ ! -s dump.html ]; then
-          timestamp=$(date +"%Y/%m/%d %H:%M")
-          echo "Error at: ${timestamp}" >> steamdeck_error_log.txt
-          git config user.name "Automated"
-          git config user.email "actions@users.noreply.github.com"
-          git add steamdeck_error_log.txt
-          git commit -m "Logged error: ${timestamp}" || exit 0
-          git push
-        else
-          echo "Steam Deck Refurbished page fetched successfully."
-          git config user.name "Automated"
-          git config user.email "actions@users.noreply.github.com"
-          git add dump.html
-          git commit -m "Logged dump: ${timestamp}" || exit 0
-          git push
-        fi
+        node <<EOF
+        const fs = require('fs');
+        const puppeteer = require('puppeteer');
+
+        (async () => {
+          try {
+            const browser = await puppeteer.launch();
+            const page = await browser.newPage();
+            await page.goto('https://store.steampowered.com/sale/steamdeckrefurbished/', { waitUntil: 'networkidle0' });
+
+            const content = await page.content();
+            fs.writeFileSync('dump.html', content);
+
+            await browser.close();
+
+            if (content.trim().length === 0) {
+              const timestamp = new Date().toISOString();
+              fs.appendFileSync('steamdeck_error_log.txt', `Error at: ${timestamp}\n`);
+            } else {
+              console.log('Steam Deck Refurbished page fetched successfully.');
+            }
+          } catch (error) {
+            const timestamp = new Date().toISOString();
+            fs.appendFileSync('steamdeck_error_log.txt', `Error at: ${timestamp} - ${error.message}\n`);
+            console.error(error);
+          }
+        })();
+        EOF
+
+    - name: Commit and push changes
+      run: |-
+        git config user.name "Automated"
+        git config user.email "actions@users.noreply.github.com"
+        git add dump.html steamdeck_error_log.txt || true
+        git commit -m "Automated update at $(date +"%Y/%m/%d %H:%M")" || exit 0
+        git push
