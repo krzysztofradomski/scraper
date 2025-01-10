@@ -23,4 +23,9 @@ jobs:
           git push
         else
           echo "Steam Deck Refurbished page fetched successfully."
+          git config user.name "Automated"
+          git config user.email "actions@users.noreply.github.com"
+          git add dump.html
+          git commit -m "Logged dump: ${timestamp}" || exit 0
+          git push
         fi
