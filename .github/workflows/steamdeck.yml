@@ -2,7 +2,7 @@ on:
   push:
   workflow_dispatch:
   schedule:
-    - cron: '*/30 * * * *'
+    - cron: '*/60 * * * *'
 
 jobs:
   scheduled:
@@ -89,7 +89,6 @@ jobs:
         git config user.email "actions@users.noreply.github.com"
         git add in_stock.txt error.txt || true
         
-        # Check if there are changes staged for commit
         if git diff --cached --quiet; then
           echo "No changes in in_stock.txt or error.txt. Exiting."
           exit 0
