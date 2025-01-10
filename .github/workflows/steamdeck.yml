@@ -1,0 +1,26 @@
+on:
+  push:
+  workflow_dispatch:
+  schedule:
+    - cron: '*/30 * * * *'
+
+jobs:
+  scheduled:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Check out this repo
+      uses: actions/checkout@v4
+    - name: Fetch current Steam Deck Refurbished page
+      run: |-
+        curl -L "https://store.steampowered.com/sale/steamdeckrefurbished/" -o dump.html
+        if [ ! -s dump.html ]; then
+          timestamp=$(date +"%Y/%m/%d %H:%M")
+          echo "Error at: ${timestamp}" >> steamdeck_error_log.txt
+          git config user.name "Automated"
+          git config user.email "actions@users.noreply.github.com"
+          git add steamdeck_error_log.txt
+          git commit -m "Logged error: ${timestamp}" || exit 0
+          git push
+        else
+          echo "Steam Deck Refurbished page fetched successfully."
+        fi
